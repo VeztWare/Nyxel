@@ -16,6 +16,8 @@ local _attackCooldown = false
 local _attacking = false
 local _viewmodelAnimationCooldown = false
 local _thirdPersonAnimCooldown = false
+local _foundPerfection = false
+local _foundEntity = false
 
 local mouse = lplr:GetMouse()
 local Players = game:GetService("Players")
@@ -35,7 +37,7 @@ function update_cps(cps)
     BlinkClient.player_state.update_cps.fire(cps)
 end
 
---[[ // block the old updater and replace with the spoofed oned, removed for now due to crashing stuff
+--[[ // block the old updater and replace with the spoofed oned
 
 old = hookfunction(NetworkService.GetPing, function(self, ...)
     local source = debug.getinfo(2).source
@@ -165,10 +167,11 @@ RunService.RenderStepped:Connect(function(dt)
     local nearest = GetNearestPlayer(ATTACK_DISTANCE)
 
     if nearest and IsPlayerInFOV(nearest) and StrictWallCheckCamera(nearest.Character) and not Entity.LocalEntity.State.IsBlocking then
-        fovCircle.Color = Color3.fromRGB(255, 255, 0)
-
-        if not _attackCooldown and Melee.isInRange(lplr.Character.PrimaryPart.Position, nearest.Character.HumanoidRootPart.Position, Entity.LocalEntity.State.Reach + math.random(0, 1)) then
+        _foundEntity = true
+        if not _attackCooldown and Melee.isInRange(lplr.Character.PrimaryPart.Position, nearest.Character.HumanoidRootPart.Position, Entity.LocalEntity.State.Reach) then
+            _foundPerfection = true
             _attackCooldown = true
+            fovCircle.Color = Color3.fromRGB(170, 0, 255)
             update_cps(6 + math.random(-2, 2))
             if _viewmodelAnimationCooldown == false then
                 task.defer(function()
@@ -204,8 +207,11 @@ RunService.RenderStepped:Connect(function(dt)
             ToolService:AttackPlayerWithSword(nearest.Character, lplr.Character.PrimaryPart.AssemblyLinearVelocity.Y < 0, getSword(), "\226\128\139")
             wait(Melee.COOLDOWN)
             _attackCooldown = false
+        else
+            _foundPerfection = false
         end
     else
+        _foundEntity = false
         fovCircle.Color = Color3.fromRGB(255, 255, 255)
     end
 end)
