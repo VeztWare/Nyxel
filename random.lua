@@ -37,7 +37,7 @@ function update_cps(cps)
     BlinkClient.player_state.update_cps.fire(cps)
 end
 
---[[ // block the old updater and replace with the spoofed oned
+--[[ // block the old updater and replace with the spoofed oned, this crashes alot but i guess its part of the code so it gets to stay
 
 old = hookfunction(NetworkService.GetPing, function(self, ...)
     local source = debug.getinfo(2).source
@@ -55,8 +55,8 @@ spawn(function()
     while task.wait(1) do
         NetworkController.Ping = (Ping + math.random(-PingDifference, PingDifference)) / 1000
     end
-end)
-]]
+end)]]
+
 -- // Utility Functions
 
 function GetNearestPlayer(maxDist)
@@ -213,5 +213,18 @@ RunService.RenderStepped:Connect(function(dt)
     else
         _foundEntity = false
         fovCircle.Color = Color3.fromRGB(255, 255, 255)
+    end
+end)
+
+local lplr = game.Players.LocalPlayer
+local uis = game:GetService("UserInputService")
+function getTool()
+    return lplr.Character:FindFirstChildWhichIsA("Tool") or nil
+end
+
+game:GetService("RunService").RenderStepped:Connect(function()
+    local s = getTool()
+    if s and uis:IsMouseButtonPressed(1) then
+        s:Activate()
     end
 end)
