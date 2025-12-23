@@ -23,7 +23,6 @@ local mouse = lplr:GetMouse()
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-
 local Ping = 50
 local PingDifference = 20
 local CPS = 6
@@ -217,14 +216,14 @@ RunService.RenderStepped:Connect(function(dt)
 end)
 
 local lplr = game.Players.LocalPlayer
-local uis = game:GetService("UserInputService")
+local defier = false -- change this if you want block spam on right click
 function getTool()
     return lplr.Character:FindFirstChildWhichIsA("Tool") or nil
 end
 
 game:GetService("RunService").RenderStepped:Connect(function()
     local s = getTool()
-    if s and uis:IsMouseButtonPressed(1) then
+    if s and UserInputService:IsMouseButtonPressed(1) and defier then
         s:Activate()
     end
 end)
