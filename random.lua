@@ -1,4 +1,54 @@
 repeat wait() until game:IsLoaded()
+local BridgeDuel = {
+    Modules = {
+        SwordClient = game:GetService("ReplicatedStorage").Client.Components.All.Tools.SwordClient
+    },
+    Constants = {}
+}
+
+function EvaluateOriginalExpression(source, sandboxEnv)
+    sandboxEnv = sandboxEnv or { workspace = workspace }
+
+    local extraTable = source:match('%[%s*"extra"%s*%]%s*=%s*(%b{})') -- // worst part because bridge duel can just change it to something else but yeah
+    if not extraTable then
+        return nil
+    end
+
+    local results = {}
+    local function isQuotedString(v)
+        return v:match('^".*"$') or v:match("^'.*'$")
+    end
+
+    local function eval(valueString)
+        local chunk, err = loadstring("return " .. valueString)
+        if not chunk then return nil end
+
+        setfenv(chunk, sandboxEnv) -- // sandbox so bridge duel doesn't do anything funny
+
+        local ok, res = pcall(chunk)
+        if ok then
+            return res
+        end
+
+        return nil
+    end
+
+    for key, valueText in extraTable:gmatch('%["(.-)"%]%s*=%s*(.-)[,%}]') do
+        
+        valueText = valueText:match("^%s*(.-)%s*$")
+
+        if isQuotedString(valueText) then
+            results[key] = valueText:sub(2, -2)
+        else
+            results[key] = eval(valueText)
+        end
+    end
+
+    return results
+end
+
+BridgeDuel.Constants.ExtraTable = EvaluateOriginalExpression(decompile(BridgeDuel.Modules.SwordClient))
+
 local RS = game.ReplicatedStorage
 local NetworkController = require(RS.Client.Controllers.All.NetworkController)
 local BlinkClient = require(RS.Blink.Client)
@@ -23,7 +73,7 @@ local mouse = lplr:GetMouse()
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local Ping = 50
+local Ping = 30
 local PingDifference = 20
 local CPS = 6
 
@@ -36,25 +86,19 @@ function update_cps(cps)
     BlinkClient.player_state.update_cps.fire(cps)
 end
 
---[[ // block the old updater and replace with the spoofed oned, this crashes alot but i guess its part of the code so it gets to stay
-
-old = hookfunction(NetworkService.GetPing, function(self, ...)
-    local source = debug.getinfo(2).source
+local old = hookfunction(NetworkService.GetPing, function(self, ...)
+    local source = debug.getinfo(2, "s").source
     if source and string.find(source, "NetworkController") then
-        return {
-            andThen = function(self, callback)
-                return self
-            end
-        }
+        return Promise.resolve()
     end
     return old(self, ...)
 end)
 
-spawn(function()
+task.spawn(function()
     while task.wait(1) do
         NetworkController.Ping = (Ping + math.random(-PingDifference, PingDifference)) / 1000
     end
-end)]]
+end)
 
 -- // Utility Functions
 
@@ -196,11 +240,7 @@ RunService.RenderStepped:Connect(function(dt)
                 ["target_entity_id"] = id,
                 ["is_crit"] = lplr.Character.PrimaryPart.AssemblyLinearVelocity.Y < 0,
                 ["weapon_name"] = getSword(),
-                ["extra"] = {
-                    ["rizz"] = "Bro.",
-                    ["owo"] = "What's this? OwO",
-                    ["those"] = workspace.Name == "Ok"
-                }
+                ["extra"] = BridgeDuel.Constants.ExtraTable
             }
             BlinkClient.item_action.attack_entity.fire(v36)
             ToolService:AttackPlayerWithSword(nearest.Character, lplr.Character.PrimaryPart.AssemblyLinearVelocity.Y < 0, getSword(), "\226\128\139")
